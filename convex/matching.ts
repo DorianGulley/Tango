@@ -44,6 +44,16 @@ async function inAnotherTango(ctx: MutationCtx, userId: Id<'users'>) {
   return !mine(match, 'dismissed', match.userA === userId ? 'A' : 'B');
 }
 
+function freshSessions(ctx: MutationCtx, now: number) {
+  return ctx.db
+    .query('sessions')
+    .withIndex('by_active_and_updatedAt', (q) =>
+      q.eq('active', true).gte('updatedAt', now - STALE_POSITION_MINUTES * 60_000),
+    )
+    .order('desc')
+    .take(500);
+}
+
 export async function findMatchFor(ctx: MutationCtx, sessionId: Id<'sessions'>) {
   const now = Date.now();
   const session = await ctx.db.get('sessions', sessionId);
@@ -53,10 +63,7 @@ export async function findMatchFor(ctx: MutationCtx, sessionId: Id<'sessions'>) 
   const myQuiz: Answers = me.quiz;
 
   const [candidates, locations] = await Promise.all([
-    ctx.db
-      .query('sessions')
-      .withIndex('by_active', (q) => q.eq('active', true))
-      .take(500),
+    freshSessions(ctx, now),
     ctx.db.query('locations').take(500),
   ]);
 
@@ -151,17 +158,21 @@ export const expireMatch = internalMutation({
 export const sweep = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const staleBefore = Date.now() - STALE_POSITION_MINUTES * 60_000;
-    const sessions = await ctx.db
+    const now = Date.now();
+    const stale = await ctx.db
       .query('sessions')
-      .withIndex('by_active', (q) => q.eq('active', true))
+      .withIndex('by_active_and_updatedAt', (q) =>
+        q.eq('active', true).gte('updatedAt', 0).lt('updatedAt', now - STALE_POSITION_MINUTES * 60_000),
+      )
       .take(500);
-    for (const session of sessions) {
-      if (session.latitude !== undefined && (session.updatedAt ?? session._creationTime) < staleBefore) {
-        await ctx.db.patch('sessions', session._id, { latitude: undefined, longitude: undefined });
-      }
+    for (const session of stale) {
+      await ctx.db.patch('sessions', session._id, {
+        latitude: undefined,
+        longitude: undefined,
+        updatedAt: undefined,
+      });
     }
-    for (const session of sessions) await findMatchFor(ctx, session._id);
+    for (const session of await freshSessions(ctx, now)) await findMatchFor(ctx, session._id);
     return null;
   },
 });

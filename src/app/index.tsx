@@ -9,7 +9,7 @@ import { ITEMS } from '@/../convex/compatibility';
 import { CAMPUS_NAME, ENVIRONMENTS } from '@/../convex/tangoConfig';
 import { MatchFlow } from '@/components/match-flow';
 import { Body, Button, Card, Screen, Title } from '@/components/ui';
-import { startBackgroundUpdates, stopBackgroundUpdates } from '@/lib/background-location';
+import { startBackgroundUpdates, stopBackgroundUpdates, watchWhileOpen } from '@/lib/background-location';
 import { useDeviceId } from '@/lib/device';
 import { showError } from '@/lib/errors';
 import type { TangoState } from '@/lib/types';
@@ -48,9 +48,24 @@ function TangoHome({ profile, tangoMode, connections }: HomeProps) {
   const on = tangoMode !== null;
 
   useEffect(() => {
-    if (on) startBackgroundUpdates().catch(() => {});
-    else stopBackgroundUpdates().catch(() => {});
-  }, [on]);
+    if (!on) {
+      stopBackgroundUpdates().catch(() => {});
+      return;
+    }
+    let stopWatching: (() => void) | undefined;
+    let cancelled = false;
+    startBackgroundUpdates()
+      .then(async (background) => {
+        if (background || cancelled) return;
+        stopWatching = await watchWhileOpen(deviceId);
+        if (cancelled) stopWatching();
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      stopWatching?.();
+    };
+  }, [on, deviceId]);
 
   async function turnOn() {
     setBusy(true);

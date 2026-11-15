@@ -28,8 +28,9 @@ async function notifyInvitation(invitationId: string) {
   });
 }
 
+const client = new ConvexHttpClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
+
 if (supported) {
-  const client = new ConvexHttpClient(process.env.EXPO_PUBLIC_CONVEX_URL!);
   TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ data, error }) => {
     const latest = data?.locations.at(-1);
     if (error || !latest) return;
@@ -62,9 +63,26 @@ export async function startBackgroundUpdates() {
       pausesUpdatesAutomatically: false,
       showsBackgroundLocationIndicator: true,
       activityType: Location.ActivityType.Fitness,
+      foregroundService: {
+        notificationTitle: 'Tango Mode is on',
+        notificationBody: 'Looking for someone near a meetup spot. Turn Tango Mode off to stop.',
+      },
     });
   }
   return true;
+}
+
+export async function watchWhileOpen(deviceId: string) {
+  const subscription = await Location.watchPositionAsync(
+    { accuracy: Location.Accuracy.Balanced, distanceInterval: 25, timeInterval: 60_000 },
+    ({ coords }) => {
+      const position = campusOrDemo(coords) ?? coords;
+      client
+        .mutation(api.tango.reportLocation, { deviceId, latitude: position.latitude, longitude: position.longitude })
+        .catch(() => {});
+    },
+  );
+  return () => subscription.remove();
 }
 
 export async function stopBackgroundUpdates() {

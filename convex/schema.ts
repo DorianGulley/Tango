@@ -72,7 +72,7 @@ export default defineSchema({
     matchId: v.optional(v.id('matches')),
   })
     .index('by_userId_and_active', ['userId', 'active'])
-    .index('by_active', ['active']),
+    .index('by_active_and_updatedAt', ['active', 'updatedAt']),
 
   matches: defineTable({
     userA: v.id('users'),

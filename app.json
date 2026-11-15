@@ -45,7 +45,8 @@
         {
           "locationWhenInUsePermission": "Tango uses your approximate location only while Tango Mode is on, to find a public meeting spot near you. It is never shown to anyone.",
           "locationAlwaysAndWhenInUsePermission": "While Tango Mode is on, Tango checks your approximate location in the background so it can pair you with someone near the same meetup spot. Turn Tango Mode off to stop. Your location is never shown to anyone.",
-          "isIosBackgroundLocationEnabled": true
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
         }
       ],
       "expo-maps",

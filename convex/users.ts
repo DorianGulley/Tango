@@ -51,13 +51,6 @@ export const saveProfile = mutation({
     const bio = profile.bio?.trim().slice(0, 280) || undefined;
 
     const existing = await findUser(ctx, deviceId);
-    const emailOwner = await ctx.db
-      .query('users')
-      .withIndex('by_email', (q) => q.eq('email', email))
-      .first();
-    if (emailOwner && emailOwner._id !== existing?._id) {
-      throw new ConvexError('That email already has a Tango account.');
-    }
     const doc = { ...profile, email, name, bio, deviceId };
     if (existing) {
       await ctx.db.replace('users', existing._id, doc);

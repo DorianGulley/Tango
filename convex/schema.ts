@@ -46,8 +46,7 @@ export default defineSchema({
     answers: v.array(v.number()),
     environments: v.array(environment),
   })
-    .index('by_deviceId', ['deviceId'])
-    .index('by_email', ['email']),
+    .index('by_deviceId', ['deviceId']),
 
   locations: defineTable({
     name: v.string(),
@@ -59,6 +58,7 @@ export default defineSchema({
     photoUrl: v.string(),
     photoCredit: v.string(),
     photoSource: v.string(),
+    retired: v.optional(v.boolean()),
   }).index('by_name', ['name']),
 
   sessions: defineTable({

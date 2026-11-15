@@ -141,13 +141,13 @@ export const seedLocations = internalMutation({
       }
     }
     const names = new Set(LOCATIONS.map((l) => l.name));
-    let removed = 0;
+    let retired = 0;
     for (const location of await ctx.db.query('locations').take(500)) {
-      if (!names.has(location.name)) {
-        await ctx.db.delete('locations', location._id);
-        removed++;
+      if (!names.has(location.name) && !location.retired) {
+        await ctx.db.patch('locations', location._id, { retired: true });
+        retired++;
       }
     }
-    return { inserted, removed, total: LOCATIONS.length };
+    return { inserted, retired, total: LOCATIONS.length };
   },
 });

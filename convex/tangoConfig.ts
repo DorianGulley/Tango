@@ -1,6 +1,6 @@
 // Product decisions for the Tango MVP. The concept doc left these TBD; change them here.
 
-export const SESSION_MINUTES = 60;
+export const STALE_POSITION_MINUTES = 120;
 export const INVITE_MINUTES = 5;
 export const PLAN_CONFIRM_MINUTES = 10;
 export const RENDEZVOUS_MINUTES = 30;
@@ -72,3 +72,8 @@ export const CAMPUS_NAME = 'Stanford';
 export const CAMPUS_CENTER = { latitude: 37.4275, longitude: -122.1697 };
 export const CAMPUS_RADIUS_METERS = 1600;
 export const ALLOWED_EMAIL_DOMAIN = 'stanford.edu';
+
+const ALLOWED_EMAIL = new RegExp(`^[^\\s@]+@([a-z0-9-]+\\.)*${ALLOWED_EMAIL_DOMAIN.replaceAll('.', '\\.')}$`);
+export function isAllowedEmail(email: string) {
+  return ALLOWED_EMAIL.test(email.trim().toLowerCase());
+}

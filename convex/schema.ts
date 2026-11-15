@@ -65,7 +65,8 @@ export default defineSchema({
   sessions: defineTable({
     userId: v.id('users'),
     active: v.boolean(),
-    expiresAt: v.number(),
+    expiresAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
     latitude: v.optional(v.number()),
     longitude: v.optional(v.number()),
     matchId: v.optional(v.id('matches')),

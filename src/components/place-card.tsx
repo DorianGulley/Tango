@@ -51,6 +51,7 @@ export function PlaceCard({ place, compact }: { place: Place; compact?: boolean 
           style={compact ? styles.mapCompact : styles.map}
           cameraPosition={{ coordinates, zoom: 16 }}
           markers={[{ coordinates, title: place.name, tintColor: colors.accent }]}
+            properties={{ isMyLocationEnabled: true }}
             uiSettings={{ myLocationButtonEnabled: false }}
           />
         </View>

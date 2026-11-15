@@ -4,9 +4,8 @@ import { mutation } from './_generated/server';
 import { findUser } from './model';
 import { ITEMS, type Answers } from './compatibility';
 import { environment, gender, quizAnswers } from './schema';
-import { ALLOWED_EMAIL_DOMAIN, MAX_AGE, MIN_AGE, OPTIONAL_ITEMS } from './tangoConfig';
+import { ALLOWED_EMAIL_DOMAIN, isAllowedEmail, MAX_AGE, MIN_AGE, OPTIONAL_ITEMS } from './tangoConfig';
 
-const ALLOWED_EMAIL = new RegExp(`^[^\\s@]+@([a-z0-9-]+\\.)*${ALLOWED_EMAIL_DOMAIN.replaceAll('.', '\\.')}$`);
 
 function validQuiz(quiz: Answers): Answers {
   const known = new Set(ITEMS.map((item) => item.id));
@@ -40,7 +39,7 @@ export const saveProfile = mutation({
   handler: async (ctx, { deviceId, ...profile }) => {
     const name = profile.name.trim();
     const email = profile.email.trim().toLowerCase();
-    if (!ALLOWED_EMAIL.test(email)) {
+    if (!isAllowedEmail(email)) {
       throw new ConvexError(`Use your @${ALLOWED_EMAIL_DOMAIN} email address.`);
     }
     if (deviceId.length < 32) throw new ConvexError('Invalid device.');

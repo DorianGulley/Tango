@@ -36,7 +36,9 @@
     "@types/react": "~19.3.0",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~58.0.4",
-    "typescript": "~6.0.3"
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "vitest": "^5.1.0"
   },
   "scripts": {
     "start": "expo start",
@@ -44,7 +46,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "convex": "convex dev"
+    "convex": "convex dev",
+    "test": "vitest run",
+    "simulate:compatibility": "tsx scripts/simulate-compatibility.ts"
   },
   "private": true
 }

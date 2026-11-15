@@ -49,9 +49,8 @@ export const state = query({
       interestedIn: user.interestedIn,
       ageMin: user.ageMin,
       ageMax: user.ageMax,
-      intention: user.intention,
       bio: user.bio ?? null,
-      answers: user.answers,
+      quiz: user.quiz ?? null,
       environments: user.environments,
     };
     const tangoMode = session ? { expiresAt: session.expiresAt } : null;
@@ -97,6 +96,7 @@ export const state = query({
         id: match._id,
         status: match.status,
         deadline: match.deadline,
+        strengths: match.strengths ?? [],
         accepted: mine(match, 'accepted', side),
         confirmed: mine(match, 'confirmed', side),
         arrived: mine(match, 'arrived', side),
@@ -150,7 +150,7 @@ export const setTangoMode = mutation({
     if (latitude === undefined || longitude === undefined) {
       throw new ConvexError('Tango Mode needs your location.');
     }
-    if (!user.email) throw new ConvexError('Add your school email to your profile first.');
+    if (!user.email || !user.quiz) throw new ConvexError('Finish your profile first.');
     if (distanceMeters({ latitude, longitude }, CAMPUS_CENTER) > CAMPUS_RADIUS_METERS) {
       throw new ConvexError(`Tango only works on the ${CAMPUS_NAME} campus for now.`);
     }

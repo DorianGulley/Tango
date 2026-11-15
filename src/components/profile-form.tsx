@@ -1,22 +1,21 @@
 import { useMutation } from 'convex/react';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { api } from '@/../convex/_generated/api';
+import { ITEMS, type Answers } from '@/../convex/compatibility';
 import {
   ALLOWED_EMAIL_DOMAIN,
   CAMPUS_NAME,
   ENVIRONMENT_IDS,
   ENVIRONMENTS,
   GENDERS,
-  INTENTIONS,
   MAX_AGE,
   MIN_AGE,
-  QUESTIONS,
+  OPTIONAL_ITEMS,
   type Environment,
   type Gender,
-  type Intention,
 } from '@/../convex/tangoConfig';
 import { Body, Button, Card, Chip, ChipRow, Heading, Screen, Title } from '@/components/ui';
 import { useDeviceId } from '@/lib/device';
@@ -31,13 +30,79 @@ export type Profile = {
   interestedIn: Gender[];
   ageMin: number;
   ageMax: number;
-  intention: Intention;
   bio: string | null;
-  answers: number[];
+  quiz: Answers | null;
   environments: Environment[];
 };
 
-const STEPS = ['About you', 'Who you want to meet', 'A few quick questions', 'Where you like to meet'];
+const QUIZ_SECTIONS = [
+  { title: 'What you want', items: ITEMS.slice(0, 3) },
+  { title: 'Values and life', items: ITEMS.slice(3, 10) },
+  { title: 'Your personality', items: ITEMS.slice(10, 15) },
+  { title: 'Getting close', items: ITEMS.slice(15, 19) },
+  { title: 'How you do relationships', items: ITEMS.slice(19, 24) },
+  { title: 'Lifestyle', items: ITEMS.slice(24) },
+];
+const STEPS = ['About you', 'Who you want to meet', ...QUIZ_SECTIONS.map((s) => s.title), 'Where you like to meet'];
+const QUIZ_START = 2;
+const PLACES_STEP = STEPS.length - 1;
+
+type Item = (typeof ITEMS)[number];
+
+function isAnswered(item: Item, quiz: Answers) {
+  return quiz[item.id] !== undefined || OPTIONAL_ITEMS.includes(item.id);
+}
+
+function QuizItem({ item, value, onChange }: { item: Item; value: string | number | undefined; onChange: (v: string | number | undefined) => void }) {
+  const optional = OPTIONAL_ITEMS.includes(item.id);
+  return (
+    <Card>
+      <Body style={{ fontWeight: '700' }}>{item.text}</Body>
+      {item.kind === 'choice' ? (
+        <ChipRow>
+          {item.options.map((option) => (
+            <Chip
+              key={option.value}
+              testID={`${item.id}-${option.value}`}
+              label={option.label}
+              selected={value === option.value}
+              onPress={() => onChange(option.value)}
+            />
+          ))}
+        </ChipRow>
+      ) : (
+        <View style={{ gap: 6 }}>
+          <View style={styles.scaleRow}>
+            {Array.from({ length: item.max - item.min + 1 }, (_, i) => item.min + i).map((n) => (
+              <Pressable
+                key={n}
+                testID={`${item.id}-${n}`}
+                accessibilityRole="radio"
+                accessibilityLabel={`${item.id} ${n}`}
+                accessibilityState={{ selected: value === n }}
+                onPress={() => onChange(n)}
+                style={[styles.scaleDot, value === n && styles.scaleDotSelected]}>
+                <Text style={[styles.scaleLabel, value === n && { color: '#FFFFFF' }]}>{n}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <View style={styles.scaleEnds}>
+            <Text style={styles.scaleEnd}>{item.lo}</Text>
+            <Text style={[styles.scaleEnd, { textAlign: 'right' }]}>{item.hi}</Text>
+          </View>
+        </View>
+      )}
+      {optional && (
+        <Chip
+          testID={`${item.id}-skip`}
+          label="Prefer not to say"
+          selected={value === undefined}
+          onPress={() => onChange(undefined)}
+        />
+      )}
+    </Card>
+  );
+}
 
 function toggle<T>(list: T[], value: T) {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -62,30 +127,27 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
   const [interestedIn, setInterestedIn] = useState<Gender[]>(initial?.interestedIn ?? []);
   const [ageMin, setAgeMin] = useState(String(initial?.ageMin ?? 21));
   const [ageMax, setAgeMax] = useState(String(initial?.ageMax ?? 40));
-  const [intention, setIntention] = useState<Intention | null>(initial?.intention ?? null);
-  const [answers, setAnswers] = useState<(number | null)[]>(
-    initial?.answers ?? QUESTIONS.map(() => null),
-  );
+  const [quiz, setQuiz] = useState<Answers>(initial?.quiz ?? {});
   const [environments, setEnvironments] = useState<Environment[]>(
     initial?.environments ?? ENVIRONMENT_IDS,
   );
 
   const ageNumber = toAge(age);
   const emailValid = email.trim().toLowerCase().endsWith(`.${ALLOWED_EMAIL_DOMAIN}`) || email.trim().toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
-  const stepValid = [
+  const quizSection = QUIZ_SECTIONS[step - QUIZ_START];
+  const stepValid = quizSection
+    ? quizSection.items.every((item) => isAnswered(item, quiz))
+    : [
     emailValid && name.trim().length > 0 && ageNumber >= MIN_AGE && ageNumber <= MAX_AGE && gender !== null,
     interestedIn.length > 0 &&
-      intention !== null &&
       toAge(ageMin) >= MIN_AGE &&
       toAge(ageMax) <= MAX_AGE &&
       toAge(ageMin) <= toAge(ageMax),
-    answers.every((a) => a !== null),
-    environments.length > 0,
-  ][step];
+  ][step] ?? environments.length > 0;
   const isLast = step === STEPS.length - 1;
 
   async function submit() {
-    if (!gender || !intention) return;
+    if (!gender) return;
     setSaving(true);
     try {
       await saveProfile({
@@ -97,9 +159,8 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
         interestedIn,
         ageMin: toAge(ageMin),
         ageMax: toAge(ageMax),
-        intention,
         bio: bio.trim() || undefined,
-        answers: answers.map((a) => a ?? 0),
+        quiz,
         environments,
       });
       if (router.canGoBack()) router.back();
@@ -227,40 +288,33 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
               maxLength={2}
             />
           </View>
-          <Heading>Looking for</Heading>
-          <ChipRow>
-            {INTENTIONS.map((i) => (
-              <Chip
-                key={i.id}
-                testID={`intention-${i.id}`}
-                label={i.label}
-                selected={intention === i.id}
-                onPress={() => setIntention(i.id)}
-              />
-            ))}
-          </ChipRow>
         </>
       )}
 
-      {step === 2 &&
-        QUESTIONS.map((question, qi) => (
-          <Card key={question.prompt}>
-            <Body style={{ fontWeight: '700' }}>{question.prompt}</Body>
-            <ChipRow>
-              {question.options.map((option, oi) => (
-                <Chip
-                  key={option}
-                  testID={`q${qi}-o${oi}`}
-                  label={option}
-                  selected={answers[qi] === oi}
-                  onPress={() => setAnswers(answers.map((a, i) => (i === qi ? oi : a)))}
-                />
-              ))}
-            </ChipRow>
-          </Card>
-        ))}
+      {quizSection && (
+        <>
+          {step === QUIZ_START && (
+            <Body muted>
+              {ITEMS.length} quick questions, about five minutes. Only Tango sees your answers; matches never do.
+            </Body>
+          )}
+          {quizSection.items.map((item) => (
+            <QuizItem
+              key={item.id}
+              item={item}
+              value={quiz[item.id]}
+              onChange={(value) => {
+                const next = { ...quiz };
+                if (value === undefined) delete next[item.id];
+                else next[item.id] = value;
+                setQuiz(next);
+              }}
+            />
+          ))}
+        </>
+      )}
 
-      {step === 3 && (
+      {step === PLACES_STEP && (
         <>
           <Body muted>
             Tango only meets at curated public spots on the {CAMPUS_NAME} campus. Turn off any kind of place
@@ -308,5 +362,20 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   flex: { flex: 1 },
+  scaleRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
+  scaleDot: {
+    flex: 1,
+    height: 44,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scaleDotSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
+  scaleLabel: { fontSize: 16, fontWeight: '700', color: colors.text },
+  scaleEnds: { flexDirection: 'row', justifyContent: 'space-between', gap: space.md },
+  scaleEnd: { flex: 1, fontSize: 13, color: colors.muted },
   footer: { marginTop: 'auto', gap: space.sm, paddingTop: space.lg },
 });

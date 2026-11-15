@@ -23,8 +23,15 @@ export default function PlacesScreen() {
       ? profile.environments.filter((e) => e !== id)
       : [...profile.environments, id];
     try {
-      if (!profile.email) return;
-      await saveProfile({ deviceId, ...profile, email: profile.email, bio: profile.bio ?? undefined, environments });
+      if (!profile.email || !profile.quiz) return;
+      await saveProfile({
+        deviceId,
+        ...profile,
+        email: profile.email,
+        quiz: profile.quiz,
+        bio: profile.bio ?? undefined,
+        environments,
+      });
     } catch (error) {
       showError(error);
     }

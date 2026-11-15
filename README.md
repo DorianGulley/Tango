@@ -1,6 +1,8 @@
 # Tango
 
-Project repository for Tango: an [Expo](https://expo.dev) app (Expo Router, TypeScript) backed by [Convex](https://convex.dev).
+Tango is a San Francisco dating app for spontaneous, in-person introductions at curated public rendezvous points: turn on Tango Mode, accept an anonymous invitation, meet at a public spot, and find each other by a matching color and symbol on both phones. It's an [Expo](https://expo.dev) app (Expo Router, TypeScript) backed by [Convex](https://convex.dev).
+
+Every product decision the concept doc left open (timings, distances, questions, environments, reveal palette) lives in `convex/tangoConfig.ts`.
 
 ## Get started
 
@@ -18,7 +20,13 @@ Project repository for Tango: an [Expo](https://expo.dev) app (Expo Router, Type
 
    In CI or a headless machine, set `CONVEX_DEPLOY_KEY` in the environment instead of logging in, and run `npx convex dev --once`.
 
-3. In another terminal, start the app
+3. Seed the curated San Francisco rendezvous points (idempotent):
+
+   ```bash
+   npx convex run seed:seedLocations
+   ```
+
+4. In another terminal, start the app
 
    ```bash
    npx expo start
@@ -29,7 +37,8 @@ Project repository for Tango: an [Expo](https://expo.dev) app (Expo Router, Type
 ## Layout
 
 - `src/app/`: screens, using [file-based routing](https://docs.expo.dev/router/introduction). `src/app/_layout.tsx` wraps the app in `ConvexProvider`.
-- `convex/`: Convex schema and functions. Read `convex/_generated/ai/guidelines.md` before writing Convex code.
+- `convex/`: Convex schema and functions. `tango.ts` holds the client API, `matching.ts` the matching engine and expiry jobs, `seed.ts` the curated locations. Read `convex/_generated/ai/guidelines.md` before writing Convex code.
+- Identity is an anonymous random id per device, kept in `expo-secure-store`; there is no auth provider yet.
 - `AGENTS.md` / `CLAUDE.md`: guidance for coding agents.
 
 ## Checks

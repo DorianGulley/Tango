@@ -10,6 +10,7 @@ import {
   endSession,
   findUser,
   latestMatch,
+  mutualInterest,
   flag,
   mine,
   requireMatch,
@@ -49,35 +50,44 @@ export const state = query({
       environments: user.environments,
     };
     const tangoMode = session ? { expiresAt: session.expiresAt } : null;
-    if (!match) return { profile, tangoMode, match: null };
 
+    const connections = [];
+    const interested = await ctx.db
+      .query('feedback')
+      .withIndex('by_userId', (q) => q.eq('userId', user._id))
+      .order('desc')
+      .take(50);
+    for (const own of interested) {
+      if (!own.connectAgain) continue;
+      const past = await ctx.db.get('matches', own.matchId);
+      if (!past) continue;
+      const interest = await mutualInterest(ctx, past, user._id);
+      if (!interest.mutual) continue;
+      const place = await ctx.db.get('locations', past.locationId);
+      connections.push({
+        matchId: past._id,
+        placeName: place?.name ?? 'your Tango',
+        metOn: past._creationTime,
+        theirContact: interest.theirContact,
+      });
+    }
+
+    if (!match) return { profile, tangoMode, connections, match: null };
     const side: Side = match.userA === user._id ? 'A' : 'B';
-    if (mine(match, 'dismissed', side)) return { profile, tangoMode, match: null };
+    if (mine(match, 'dismissed', side)) return { profile, tangoMode, connections, match: null };
 
     const showPlace = match.status !== 'invited' && match.status !== 'closed';
     const location = showPlace ? await ctx.db.get('locations', match.locationId) : null;
 
-    let feedback = null;
-    if (match.status === 'completed' || match.status === 'revealed') {
-      const [own, theirs] = await Promise.all(
-        [user._id, side === 'A' ? match.userB : match.userA].map((userId) =>
-          ctx.db
-            .query('feedback')
-            .withIndex('by_matchId_and_userId', (q) => q.eq('matchId', match._id).eq('userId', userId))
-            .unique(),
-        ),
-      );
-      const mutual = !!own?.connectAgain && !!theirs?.connectAgain;
-      feedback = {
-        submitted: own !== null,
-        mutual: own !== null && theirs !== null && mutual,
-        theirContact: mutual && own?.contact ? (theirs?.contact ?? null) : null,
-      };
-    }
+    const feedback =
+      match.status === 'completed' || match.status === 'revealed'
+        ? await mutualInterest(ctx, match, user._id)
+        : null;
 
     return {
       profile,
       tangoMode,
+      connections,
       match: {
         id: match._id,
         status: match.status,

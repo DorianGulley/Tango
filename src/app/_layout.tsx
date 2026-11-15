@@ -4,7 +4,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
-import { DeviceIdProvider } from '@/lib/device';
+import { Body, Button, Screen, Title } from '@/components/ui';
+import { DeviceIdProvider, type DeviceIdStatus } from '@/lib/device';
 import { colors } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -13,11 +14,20 @@ const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
   unsavedChangesWarning: false,
 });
 
-function AppStack({ ready }: { ready: boolean }) {
+function AppStack({ status, retry }: { status: DeviceIdStatus; retry: () => void }) {
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync();
-  }, [ready]);
-  if (!ready) return null;
+    if (status !== 'loading') SplashScreen.hideAsync();
+  }, [status]);
+  if (status === 'loading') return null;
+  if (status === 'failed') {
+    return (
+      <Screen>
+        <Title>Tango couldn&apos;t start</Title>
+        <Body muted>We couldn&apos;t open this device&apos;s secure storage.</Body>
+        <Button label="Try again" onPress={retry} />
+      </Screen>
+    );
+  }
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="index" />
@@ -31,7 +41,7 @@ export default function RootLayout() {
   return (
     <ConvexProvider client={convex}>
       <StatusBar style="dark" />
-      <DeviceIdProvider>{(ready) => <AppStack ready={ready} />}</DeviceIdProvider>
+      <DeviceIdProvider>{(status, retry) => <AppStack status={status} retry={retry} />}</DeviceIdProvider>
     </ConvexProvider>
   );
 }

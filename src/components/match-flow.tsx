@@ -1,5 +1,5 @@
 import { useMutation } from 'convex/react';
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { SymbolView, type AndroidSymbol, type SFSymbol, type SymbolViewProps } from 'expo-symbols';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -74,7 +74,7 @@ function SafetyBar({ match, light }: { match: MatchView; light?: boolean }) {
       {canCancel && (
         <SafetyButton
           testID="button-cancel"
-          icon="xmark.circle"
+          icon={{ ios: 'xmark.circle', android: 'cancel', web: 'cancel' }}
           label="Cancel"
           tint={tint}
           onPress={() => run('cancel', () => cancel(args))}
@@ -82,14 +82,14 @@ function SafetyBar({ match, light }: { match: MatchView; light?: boolean }) {
       )}
       <SafetyButton
         testID="button-block"
-        icon="hand.raised"
+        icon={{ ios: 'hand.raised', android: 'block', web: 'block' }}
         label="Block"
         tint={tint}
         onPress={() => run('block', () => block(args))}
       />
       <SafetyButton
         testID="button-report"
-        icon="exclamationmark.shield"
+        icon={{ ios: 'exclamationmark.shield', android: 'report', web: 'report' }}
         label="Report"
         tint={tint}
         onPress={() => setReporting(true)}
@@ -105,7 +105,7 @@ function SafetyButton({
   onPress,
   testID,
 }: {
-  icon: SFSymbol;
+  icon: SymbolViewProps['name'];
   label: string;
   tint: string;
   onPress: () => void;
@@ -128,7 +128,7 @@ function Invite({ match }: { match: MatchView }) {
   return (
     <Screen>
       <View style={styles.hero}>
-        <SymbolView name="sparkles" size={64} tintColor={colors.accent} />
+        <SymbolView name={{ ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' }} size={64} tintColor={colors.accent} />
         <Title style={styles.centerText} testID="invite-title">
           Someone nearby might be your kind of person.
         </Title>
@@ -236,7 +236,13 @@ function Reveal({ match }: { match: MatchView }) {
       <SafeAreaView style={styles.revealInner}>
         <Text style={styles.revealHint}>Look for this screen</Text>
         <View style={styles.revealCenter}>
-          <SymbolView name={symbol.sfSymbol as SFSymbol} size={220} tintColor="#FFFFFF" />
+          <SymbolView
+            name={{
+              ios: symbol.sfSymbol as SFSymbol,
+              android: symbol.materialSymbol as AndroidSymbol,
+              web: symbol.materialSymbol as AndroidSymbol,
+            }}
+            size={220} tintColor="#FFFFFF" />
           <Text testID="reveal-label" style={styles.revealLabel}>
             {color.name} {symbol.name}
           </Text>
@@ -283,8 +289,8 @@ function CheckIn({ match }: { match: MatchView }) {
           </Card>
         ) : (
           <Body muted>
-            If you both want to connect again, we&apos;ll show it here. Nobody is told if the other person
-            didn&apos;t.
+            If you both want to connect again, it will show up on your home screen. Nobody is told if
+            the other person didn&apos;t.
           </Body>
         )}
         <Button testID="button-done" label="Done" onPress={() => run('dismiss', () => dismiss(args))} />
@@ -368,7 +374,7 @@ function Closed({ match }: { match: MatchView }) {
   return (
     <Screen>
       <View style={styles.hero}>
-        <SymbolView name="moon.stars" size={64} tintColor={colors.muted} />
+        <SymbolView name={{ ios: 'moon.stars', android: 'bedtime', web: 'bedtime' }} size={64} tintColor={colors.muted} />
         <Title testID="closed-title" style={styles.centerText}>
           This Tango isn&apos;t happening
         </Title>

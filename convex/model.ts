@@ -55,6 +55,39 @@ export function flag(field: Flag, side: Side) {
   return { [`${field}${side}`]: true } as Partial<Doc<'matches'>>;
 }
 
+export async function isBlocked(ctx: QueryCtx, a: Id<'users'>, b: Id<'users'>) {
+  const [ab, ba] = await Promise.all([
+    ctx.db
+      .query('blocks')
+      .withIndex('by_blockerId_and_blockedId', (q) => q.eq('blockerId', a).eq('blockedId', b))
+      .first(),
+    ctx.db
+      .query('blocks')
+      .withIndex('by_blockerId_and_blockedId', (q) => q.eq('blockerId', b).eq('blockedId', a))
+      .first(),
+  ]);
+  return ab !== null || ba !== null;
+}
+
+export async function mutualInterest(ctx: QueryCtx, match: Doc<'matches'>, userId: Id<'users'>) {
+  const otherId = match.userA === userId ? match.userB : match.userA;
+  const [own, theirs] = await Promise.all(
+    [userId, otherId].map((id) =>
+      ctx.db
+        .query('feedback')
+        .withIndex('by_matchId_and_userId', (q) => q.eq('matchId', match._id).eq('userId', id))
+        .unique(),
+    ),
+  );
+  const mutual =
+    !!own?.connectAgain && !!theirs?.connectAgain && !(await isBlocked(ctx, userId, otherId));
+  return {
+    submitted: own !== null,
+    mutual,
+    theirContact: mutual && own?.contact ? (theirs?.contact ?? null) : null,
+  };
+}
+
 export function pairKey(a: Id<'users'>, b: Id<'users'>) {
   return a < b ? `${a}|${b}` : `${b}|${a}`;
 }

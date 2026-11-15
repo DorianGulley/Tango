@@ -3,7 +3,7 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalMutation, type MutationCtx } from './_generated/server';
-import { closeMatch, distanceMeters, endSession, pairKey } from './model';
+import { closeMatch, distanceMeters, endSession, isBlocked, pairKey } from './model';
 import { matchStatus } from './schema';
 import {
   INVITE_MINUTES,
@@ -30,20 +30,6 @@ function wantsEachOther(a: Doc<'users'>, b: Doc<'users'>) {
 function compatibility(a: Doc<'users'>, b: Doc<'users'>) {
   const same = a.answers.filter((answer, i) => answer === b.answers[i]).length;
   return same / Math.max(a.answers.length, 1);
-}
-
-async function isBlocked(ctx: MutationCtx, a: Id<'users'>, b: Id<'users'>) {
-  const [ab, ba] = await Promise.all([
-    ctx.db
-      .query('blocks')
-      .withIndex('by_blockerId_and_blockedId', (q) => q.eq('blockerId', a).eq('blockedId', b))
-      .first(),
-    ctx.db
-      .query('blocks')
-      .withIndex('by_blockerId_and_blockedId', (q) => q.eq('blockerId', b).eq('blockedId', a))
-      .first(),
-  ]);
-  return ab !== null || ba !== null;
 }
 
 type Positioned = Doc<'sessions'> & { latitude: number; longitude: number };

@@ -28,12 +28,12 @@ export default function HomeScreen() {
   }
   if (state === null) return <Redirect href="/onboarding" />;
   if (state.match) return <MatchFlow match={state.match} />;
-  return <TangoHome profile={state.profile} tangoMode={state.tangoMode} />;
+  return <TangoHome profile={state.profile} tangoMode={state.tangoMode} connections={state.connections} />;
 }
 
-type HomeProps = Pick<TangoState, 'profile' | 'tangoMode'>;
+type HomeProps = Pick<TangoState, 'profile' | 'tangoMode' | 'connections'>;
 
-function TangoHome({ profile, tangoMode }: HomeProps) {
+function TangoHome({ profile, tangoMode, connections }: HomeProps) {
   const deviceId = useDeviceId();
   const setTangoMode = useMutation(api.tango.setTangoMode);
   const [busy, setBusy] = useState(false);
@@ -102,9 +102,25 @@ function TangoHome({ profile, tangoMode }: HomeProps) {
         </View>
       </Card>
 
+      {connections.length > 0 && (
+        <Card>
+          <Body style={{ fontWeight: '700' }}>It&apos;s mutual</Body>
+          {connections.map((c) => (
+            <Body key={c.matchId} testID="connection">
+              Your Tango at {c.placeName}:{' '}
+              {c.theirContact ?? 'no contact shared (share yours next time to see theirs)'}
+            </Body>
+          ))}
+        </Card>
+      )}
+
       <View style={styles.hero}>
         <SymbolView
-          name={tangoMode ? 'dot.radiowaves.left.and.right' : 'sparkles'}
+          name={
+            tangoMode
+              ? { ios: 'dot.radiowaves.left.and.right', android: 'sensors', web: 'sensors' }
+              : { ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' }
+          }
           size={72}
           tintColor={tangoMode ? colors.accent : colors.muted}
           animationSpec={tangoMode ? { effect: { type: 'pulse' }, repeating: true } : undefined}

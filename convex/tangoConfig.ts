@@ -74,14 +74,14 @@ export const REVEAL_COLORS = [
 ] as const;
 
 export const REVEAL_SYMBOLS = [
-  { name: 'Star', sfSymbol: 'star.fill' },
-  { name: 'Heart', sfSymbol: 'heart.fill' },
-  { name: 'Moon', sfSymbol: 'moon.fill' },
-  { name: 'Bolt', sfSymbol: 'bolt.fill' },
-  { name: 'Leaf', sfSymbol: 'leaf.fill' },
-  { name: 'Flame', sfSymbol: 'flame.fill' },
-  { name: 'Sun', sfSymbol: 'sun.max.fill' },
-  { name: 'Drop', sfSymbol: 'drop.fill' },
+  { name: 'Star', sfSymbol: 'star.fill', materialSymbol: 'star' },
+  { name: 'Heart', sfSymbol: 'heart.fill', materialSymbol: 'favorite' },
+  { name: 'Moon', sfSymbol: 'moon.fill', materialSymbol: 'dark_mode' },
+  { name: 'Bolt', sfSymbol: 'bolt.fill', materialSymbol: 'bolt' },
+  { name: 'Leaf', sfSymbol: 'leaf.fill', materialSymbol: 'eco' },
+  { name: 'Flame', sfSymbol: 'flame.fill', materialSymbol: 'local_fire_department' },
+  { name: 'Sun', sfSymbol: 'sun.max.fill', materialSymbol: 'sunny' },
+  { name: 'Drop', sfSymbol: 'drop.fill', materialSymbol: 'water_drop' },
 ] as const;
 
 export const REPORT_REASONS = [

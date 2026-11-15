@@ -124,5 +124,7 @@ export default defineSchema({
     connectAgain: v.boolean(),
     contact: v.optional(v.string()),
     safetyNote: v.optional(v.string()),
-  }).index('by_matchId_and_userId', ['matchId', 'userId']),
+  })
+    .index('by_matchId_and_userId', ['matchId', 'userId'])
+    .index('by_userId', ['userId']),
 });

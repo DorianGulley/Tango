@@ -34,6 +34,7 @@ export const feeling = v.union(
 export default defineSchema({
   users: defineTable({
     deviceId: v.string(),
+    email: v.optional(v.string()),
     name: v.string(),
     age: v.number(),
     gender,
@@ -44,7 +45,9 @@ export default defineSchema({
     bio: v.optional(v.string()),
     answers: v.array(v.number()),
     environments: v.array(environment),
-  }).index('by_deviceId', ['deviceId']),
+  })
+    .index('by_deviceId', ['deviceId'])
+    .index('by_email', ['email']),
 
   locations: defineTable({
     name: v.string(),

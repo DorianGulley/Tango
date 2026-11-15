@@ -5,6 +5,8 @@ import { StyleSheet, TextInput, View } from 'react-native';
 
 import { api } from '@/../convex/_generated/api';
 import {
+  ALLOWED_EMAIL_DOMAIN,
+  CAMPUS_NAME,
   ENVIRONMENT_IDS,
   ENVIRONMENTS,
   GENDERS,
@@ -22,6 +24,7 @@ import { showError } from '@/lib/errors';
 import { colors, radius, space } from '@/theme';
 
 export type Profile = {
+  email: string | null;
   name: string;
   age: number;
   gender: Gender;
@@ -51,6 +54,7 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
 
+  const [email, setEmail] = useState(initial?.email ?? '');
   const [name, setName] = useState(initial?.name ?? '');
   const [age, setAge] = useState(initial ? String(initial.age) : '');
   const [gender, setGender] = useState<Gender | null>(initial?.gender ?? null);
@@ -67,8 +71,9 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
   );
 
   const ageNumber = toAge(age);
+  const emailValid = email.trim().toLowerCase().endsWith(`.${ALLOWED_EMAIL_DOMAIN}`) || email.trim().toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
   const stepValid = [
-    name.trim().length > 0 && ageNumber >= MIN_AGE && ageNumber <= MAX_AGE && gender !== null,
+    emailValid && name.trim().length > 0 && ageNumber >= MIN_AGE && ageNumber <= MAX_AGE && gender !== null,
     interestedIn.length > 0 &&
       intention !== null &&
       toAge(ageMin) >= MIN_AGE &&
@@ -85,6 +90,7 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
     try {
       await saveProfile({
         deviceId,
+        email,
         name,
         age: ageNumber,
         gender,
@@ -114,7 +120,28 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
 
       {step === 0 && (
         <>
-          {!initial && <Body muted>Less swiping. More serendipity. This takes about a minute.</Body>}
+          {!initial?.email && (
+            <Body muted>
+              Meet the people you already pass on campus. Tango is open to {CAMPUS_NAME} students and staff for now.
+            </Body>
+          )}
+          <Heading>{CAMPUS_NAME} email</Heading>
+          <TextInput
+            testID="input-email"
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            placeholder={`you@${ALLOWED_EMAIL_DOMAIN}`}
+            placeholderTextColor={colors.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            maxLength={120}
+          />
+          {email.includes('@') && !emailValid && (
+            <Body style={{ color: colors.danger }}>Use your @{ALLOWED_EMAIL_DOMAIN} address.</Body>
+          )}
           <Heading>First name</Heading>
           <TextInput
             testID="input-name"
@@ -236,8 +263,8 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
       {step === 3 && (
         <>
           <Body muted>
-            Tango only meets at curated public spots in San Francisco. Turn off any kind of place you would
-            rather skip.
+            Tango only meets at curated public spots on the {CAMPUS_NAME} campus. Turn off any kind of place
+            you would rather skip.
           </Body>
           <ChipRow>
             {ENVIRONMENTS.map((e) => (
@@ -256,13 +283,13 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
       <View style={styles.footer}>
         <Button
           testID={isLast ? 'button-save-profile' : 'button-next'}
-          label={isLast ? (initial ? 'Save' : 'Finish') : 'Next'}
+          label={isLast ? (initial?.email ? 'Save' : 'Finish') : 'Next'}
           disabled={!stepValid}
           busy={saving}
           onPress={isLast ? submit : () => setStep(step + 1)}
         />
         {step > 0 && <Button label="Back" variant="ghost" onPress={() => setStep(step - 1)} />}
-        {step === 0 && initial && <Button label="Cancel" variant="ghost" onPress={() => router.back()} />}
+        {step === 0 && initial?.email && <Button label="Cancel" variant="ghost" onPress={() => router.back()} />}
       </View>
     </Screen>
   );

@@ -7,6 +7,7 @@ import { findMatchFor } from './matching';
 import {
   activeSession,
   closeMatch,
+  distanceMeters,
   endSession,
   findUser,
   latestMatch,
@@ -19,6 +20,9 @@ import {
 } from './model';
 import { feeling, reportReason } from './schema';
 import {
+  CAMPUS_CENTER,
+  CAMPUS_NAME,
+  CAMPUS_RADIUS_METERS,
   COARSE_POSITION_DECIMALS,
   PLAN_CONFIRM_MINUTES,
   RENDEZVOUS_MINUTES,
@@ -38,6 +42,7 @@ export const state = query({
     const match = await latestMatch(ctx, user._id);
 
     const profile = {
+      email: user.email ?? null,
       name: user.name,
       age: user.age,
       gender: user.gender,
@@ -144,6 +149,10 @@ export const setTangoMode = mutation({
 
     if (latitude === undefined || longitude === undefined) {
       throw new ConvexError('Tango Mode needs your location.');
+    }
+    if (!user.email) throw new ConvexError('Add your school email to your profile first.');
+    if (distanceMeters({ latitude, longitude }, CAMPUS_CENTER) > CAMPUS_RADIUS_METERS) {
+      throw new ConvexError(`Tango only works on the ${CAMPUS_NAME} campus for now.`);
     }
     const current = await latestMatch(ctx, user._id);
     const side: Side = current?.userA === user._id ? 'A' : 'B';

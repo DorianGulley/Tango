@@ -1,6 +1,6 @@
 # Tango
 
-Tango is a San Francisco dating app for spontaneous, in-person introductions at curated public rendezvous points: turn on Tango Mode, accept an anonymous invitation, meet at a public spot, and find each other by a matching color and symbol on both phones. It's an [Expo](https://expo.dev) app (Expo Router, TypeScript) backed by [Convex](https://convex.dev).
+Tango helps you meet the people you already pass on campus and might never realize you're compatible with. It's limited to Stanford for now: accounts need a @stanford.edu email, and introductions happen at curated public spots on campus: turn on Tango Mode, accept an anonymous invitation, meet at a public spot, and find each other by a matching color and symbol on both phones. It's an [Expo](https://expo.dev) app (Expo Router, TypeScript) backed by [Convex](https://convex.dev).
 
 Every product decision the concept doc left open (timings, distances, questions, environments, reveal palette) lives in `convex/tangoConfig.ts`.
 
@@ -20,7 +20,7 @@ Every product decision the concept doc left open (timings, distances, questions,
 
    In CI or a headless machine, set `CONVEX_DEPLOY_KEY` in the environment instead of logging in, and run `npx convex dev --once`.
 
-3. Seed the curated San Francisco rendezvous points (idempotent):
+3. Seed the curated Stanford campus rendezvous points (idempotent; it also removes any spot no longer in the list):
 
    ```bash
    npx convex run seed:seedLocations

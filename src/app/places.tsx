@@ -23,7 +23,8 @@ export default function PlacesScreen() {
       ? profile.environments.filter((e) => e !== id)
       : [...profile.environments, id];
     try {
-      await saveProfile({ deviceId, ...profile, bio: profile.bio ?? undefined, environments });
+      if (!profile.email) return;
+      await saveProfile({ deviceId, ...profile, email: profile.email, bio: profile.bio ?? undefined, environments });
     } catch (error) {
       showError(error);
     }
@@ -33,8 +34,8 @@ export default function PlacesScreen() {
     <Screen>
       <Title>Places</Title>
       <Body muted>
-        Tango only suggests these curated public spots. Your choices filter the list; they never add new
-        places.
+        Tango only suggests these curated public spots on campus. Your choices filter the list; they never
+        add new places.
       </Body>
       {profile && (
         <ChipRow>

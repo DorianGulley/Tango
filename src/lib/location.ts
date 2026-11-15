@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 
-import { SERVICE_RADIUS_METERS, SF_CENTER } from '@/../convex/tangoConfig';
+import { CAMPUS_CENTER, CAMPUS_NAME, CAMPUS_RADIUS_METERS } from '@/../convex/tangoConfig';
 
 type Position = { latitude: number; longitude: number };
 
@@ -35,15 +35,15 @@ export async function getPositionForTango(): Promise<PositionResult> {
   const demo = parseDemoLocation();
   const { granted } = await Location.requestForegroundPermissionsAsync();
   const position = granted ? await currentPosition() : null;
-  const inSanFrancisco = position && distanceMeters(position, SF_CENTER) <= SERVICE_RADIUS_METERS;
+  const onCampus = position && distanceMeters(position, CAMPUS_CENTER) <= CAMPUS_RADIUS_METERS;
 
-  if (position && inSanFrancisco) return { ok: true, position, demo: false };
+  if (position && onCampus) return { ok: true, position, demo: false };
   if (demo) return { ok: true, position: demo, demo: true };
   if (!granted) {
     return { ok: false, message: 'Tango Mode needs your location while it is on. You can allow it in Settings.' };
   }
   if (!position) return { ok: false, message: 'We could not find your location. Try again in a moment.' };
-  return { ok: false, message: 'Tango is only available in San Francisco for now.' };
+  return { ok: false, message: `Tango only works on the ${CAMPUS_NAME} campus for now.` };
 }
 
 export const isDemoLocationEnabled = parseDemoLocation() !== null;

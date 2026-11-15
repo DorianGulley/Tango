@@ -80,6 +80,7 @@ export async function findMatchFor(ctx: MutationCtx, sessionId: Id<'sessions'>) 
     if (pair || (await isBlocked(ctx, me._id, other._id))) continue;
 
     for (const location of locations) {
+      if (location.retired) continue;
       if (!me.environments.includes(location.type) || !other.environments.includes(location.type)) {
         continue;
       }

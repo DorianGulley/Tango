@@ -26,7 +26,7 @@ export default function HomeScreen() {
       </View>
     );
   }
-  if (state === null) return <Redirect href="/onboarding" />;
+  if (state === null || !state.profile.email) return <Redirect href="/onboarding" />;
   if (state.match) return <MatchFlow match={state.match} />;
   return <TangoHome profile={state.profile} tangoMode={state.tangoMode} connections={state.connections} />;
 }
@@ -49,7 +49,7 @@ function TangoHome({ profile, tangoMode, connections }: HomeProps) {
         setNotice(result.message);
         return;
       }
-      if (result.demo) setNotice('Demo build: using a fixed downtown San Francisco location.');
+      if (result.demo) setNotice('Demo build: using a fixed spot on campus.');
       await setTangoMode({ deviceId, on: true, ...result.position });
     } catch (error) {
       showError(error);

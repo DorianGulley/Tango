@@ -5,7 +5,7 @@ export const INVITE_MINUTES = 5;
 export const PLAN_CONFIRM_MINUTES = 10;
 export const RENDEZVOUS_MINUTES = 30;
 
-export const MAX_TRAVEL_METERS = 2000;
+export const MAX_TRAVEL_METERS = 241;
 export const MIN_COMPATIBILITY = 0.5;
 export const COARSE_POSITION_DECIMALS = 3;
 export const MIN_AGE = 18;
@@ -13,7 +13,7 @@ export const MAX_AGE = 99;
 
 export const ENVIRONMENTS = [
   { id: 'cafe', label: 'Cafés', symbol: 'cup.and.saucer.fill' },
-  { id: 'park', label: 'Parks', symbol: 'tree.fill' },
+  { id: 'park', label: 'Lawns & gardens', symbol: 'tree.fill' },
   { id: 'plaza', label: 'Public plazas', symbol: 'building.columns.fill' },
   { id: 'social', label: 'Social venues', symbol: 'person.3.fill' },
   { id: 'event', label: 'Events', symbol: 'ticket.fill' },
@@ -100,5 +100,7 @@ export const FEELINGS = [
 ] as const;
 export type Feeling = (typeof FEELINGS)[number]['id'];
 
-export const SF_CENTER = { latitude: 37.7749, longitude: -122.4194 };
-export const SERVICE_RADIUS_METERS = 15000;
+export const CAMPUS_NAME = 'Stanford';
+export const CAMPUS_CENTER = { latitude: 37.4275, longitude: -122.1697 };
+export const CAMPUS_RADIUS_METERS = 1600;
+export const ALLOWED_EMAIL_DOMAIN = 'stanford.edu';

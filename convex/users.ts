@@ -3,11 +3,14 @@ import { ConvexError, v } from 'convex/values';
 import { mutation } from './_generated/server';
 import { findUser } from './model';
 import { environment, gender, intention } from './schema';
-import { MAX_AGE, MIN_AGE, QUESTIONS } from './tangoConfig';
+import { ALLOWED_EMAIL_DOMAIN, MAX_AGE, MIN_AGE, QUESTIONS } from './tangoConfig';
+
+const ALLOWED_EMAIL = new RegExp(`^[^\\s@]+@([a-z0-9-]+\\.)*${ALLOWED_EMAIL_DOMAIN.replaceAll('.', '\\.')}$`);
 
 export const saveProfile = mutation({
   args: {
     deviceId: v.string(),
+    email: v.string(),
     name: v.string(),
     age: v.number(),
     gender,
@@ -21,6 +24,10 @@ export const saveProfile = mutation({
   },
   handler: async (ctx, { deviceId, ...profile }) => {
     const name = profile.name.trim();
+    const email = profile.email.trim().toLowerCase();
+    if (!ALLOWED_EMAIL.test(email)) {
+      throw new ConvexError(`Use your @${ALLOWED_EMAIL_DOMAIN} email address.`);
+    }
     if (deviceId.length < 32) throw new ConvexError('Invalid device.');
     if (!name || name.length > 40) throw new ConvexError('Add a first name (up to 40 characters).');
     if (!Number.isInteger(profile.age) || profile.age < MIN_AGE || profile.age > MAX_AGE) {
@@ -44,7 +51,7 @@ export const saveProfile = mutation({
     const bio = profile.bio?.trim().slice(0, 280) || undefined;
 
     const existing = await findUser(ctx, deviceId);
-    const doc = { ...profile, name, bio, deviceId };
+    const doc = { ...profile, email, name, bio, deviceId };
     if (existing) {
       await ctx.db.replace('users', existing._id, doc);
       return existing._id;

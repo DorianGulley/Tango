@@ -19,6 +19,11 @@ function distanceMeters(a: Position, b: Position) {
   return 2 * 6371000 * Math.asin(Math.sqrt(h));
 }
 
+export function campusOrDemo(position: Position): Position | null {
+  if (distanceMeters(position, CAMPUS_CENTER) <= CAMPUS_RADIUS_METERS) return position;
+  return parseDemoLocation();
+}
+
 async function currentPosition(): Promise<Position | null> {
   const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 10_000));
   const fix = Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })

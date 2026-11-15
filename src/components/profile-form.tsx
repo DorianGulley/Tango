@@ -9,7 +9,7 @@ import {
   ALLOWED_EMAIL_DOMAIN,
   CAMPUS_NAME,
   ENVIRONMENT_IDS,
-  ENVIRONMENTS,
+  isAllowedEmail,
   GENDERS,
   MAX_AGE,
   MIN_AGE,
@@ -43,9 +43,8 @@ const QUIZ_SECTIONS = [
   { title: 'How you do relationships', items: ITEMS.slice(19, 24) },
   { title: 'Lifestyle', items: ITEMS.slice(24) },
 ];
-const STEPS = ['About you', 'Who you want to meet', ...QUIZ_SECTIONS.map((s) => s.title), 'Where you like to meet'];
+const STEPS = ['About you', 'Who you want to meet', ...QUIZ_SECTIONS.map((s) => s.title)];
 const QUIZ_START = 2;
-const PLACES_STEP = STEPS.length - 1;
 
 type Item = (typeof ITEMS)[number];
 
@@ -128,12 +127,9 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
   const [ageMin, setAgeMin] = useState(String(initial?.ageMin ?? 21));
   const [ageMax, setAgeMax] = useState(String(initial?.ageMax ?? 40));
   const [quiz, setQuiz] = useState<Answers>(initial?.quiz ?? {});
-  const [environments, setEnvironments] = useState<Environment[]>(
-    initial?.environments ?? ENVIRONMENT_IDS,
-  );
 
   const ageNumber = toAge(age);
-  const emailValid = email.trim().toLowerCase().endsWith(`.${ALLOWED_EMAIL_DOMAIN}`) || email.trim().toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
+  const emailValid = isAllowedEmail(email);
   const quizSection = QUIZ_SECTIONS[step - QUIZ_START];
   const stepValid = quizSection
     ? quizSection.items.every((item) => isAnswered(item, quiz))
@@ -143,7 +139,7 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
       toAge(ageMin) >= MIN_AGE &&
       toAge(ageMax) <= MAX_AGE &&
       toAge(ageMin) <= toAge(ageMax),
-  ][step] ?? environments.length > 0;
+  ][step];
   const isLast = step === STEPS.length - 1;
 
   async function submit() {
@@ -161,7 +157,7 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
         ageMax: toAge(ageMax),
         bio: bio.trim() || undefined,
         quiz,
-        environments,
+        environments: initial?.environments ?? ENVIRONMENT_IDS,
       });
       if (router.canGoBack()) router.back();
       else router.replace('/');
@@ -311,26 +307,6 @@ export function ProfileForm({ initial }: { initial: Profile | null }) {
               }}
             />
           ))}
-        </>
-      )}
-
-      {step === PLACES_STEP && (
-        <>
-          <Body muted>
-            Tango only meets at curated public spots on the {CAMPUS_NAME} campus. Turn off any kind of place
-            you would rather skip.
-          </Body>
-          <ChipRow>
-            {ENVIRONMENTS.map((e) => (
-              <Chip
-                key={e.id}
-                testID={`env-${e.id}`}
-                label={e.label}
-                selected={environments.includes(e.id)}
-                onPress={() => setEnvironments(toggle(environments, e.id))}
-              />
-            ))}
-          </ChipRow>
         </>
       )}
 

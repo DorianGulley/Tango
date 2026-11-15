@@ -15,6 +15,7 @@ import {
   flag,
   mine,
   requireMatch,
+  releaseSessions,
   requireUser,
   type Side,
 } from './model';
@@ -28,7 +29,6 @@ import {
   RENDEZVOUS_MINUTES,
   REVEAL_COLORS,
   REVEAL_SYMBOLS,
-  SESSION_MINUTES,
 } from './tangoConfig';
 
 const OPEN_STATUSES = new Set(['invited', 'planning', 'rendezvous', 'revealed']);
@@ -53,7 +53,7 @@ export const state = query({
       quiz: user.quiz ?? null,
       environments: user.environments,
     };
-    const tangoMode = session ? { expiresAt: session.expiresAt } : null;
+    const tangoMode = session ? { located: session.latitude !== undefined } : null;
 
     const connections = [];
     const interested = await ctx.db
@@ -126,6 +126,11 @@ function coarse(value: number) {
   return Math.round(value * factor) / factor;
 }
 
+function campusPosition(latitude: number, longitude: number) {
+  if (distanceMeters({ latitude, longitude }, CAMPUS_CENTER) > CAMPUS_RADIUS_METERS) return null;
+  return { latitude: coarse(latitude), longitude: coarse(longitude), updatedAt: Date.now() };
+}
+
 export const setTangoMode = mutation({
   args: {
     deviceId: v.string(),
@@ -151,30 +156,43 @@ export const setTangoMode = mutation({
       throw new ConvexError('Tango Mode needs your location.');
     }
     if (!user.email || !user.quiz) throw new ConvexError('Finish your profile first.');
-    if (distanceMeters({ latitude, longitude }, CAMPUS_CENTER) > CAMPUS_RADIUS_METERS) {
-      throw new ConvexError(`Tango only works on the ${CAMPUS_NAME} campus for now.`);
-    }
+    const position = campusPosition(latitude, longitude);
+    if (!position) throw new ConvexError(`Tango only works on the ${CAMPUS_NAME} campus for now.`);
     const current = await latestMatch(ctx, user._id);
     const side: Side = current?.userA === user._id ? 'A' : 'B';
     if (current && OPEN_STATUSES.has(current.status) && !mine(current, 'dismissed', side)) {
       throw new ConvexError('Finish or cancel your current Tango first.');
     }
-    const position = { latitude: coarse(latitude), longitude: coarse(longitude) };
     if (session) {
       await ctx.db.patch('sessions', session._id, position);
       await findMatchFor(ctx, session._id);
       return null;
     }
-    const expiresAt = Date.now() + SESSION_MINUTES * 60_000;
-    const sessionId = await ctx.db.insert('sessions', {
-      userId: user._id,
-      active: true,
-      expiresAt,
-      ...position,
-    });
-    await ctx.scheduler.runAt(expiresAt, internal.matching.expireSession, { sessionId });
+    const sessionId = await ctx.db.insert('sessions', { userId: user._id, active: true, ...position });
     await findMatchFor(ctx, sessionId);
     return null;
+  },
+});
+
+export const reportLocation = mutation({
+  args: { deviceId: v.string(), latitude: v.number(), longitude: v.number() },
+  handler: async (ctx, { deviceId, latitude, longitude }) => {
+    const user = await findUser(ctx, deviceId);
+    const session = user && (await activeSession(ctx, user._id));
+    if (!user || !session) return { active: false, invitation: null };
+
+    const position = campusPosition(latitude, longitude);
+    await ctx.db.patch(
+      'sessions',
+      session._id,
+      position ?? { latitude: undefined, longitude: undefined, updatedAt: Date.now() },
+    );
+    if (position) await findMatchFor(ctx, session._id);
+
+    const match = await latestMatch(ctx, user._id);
+    const side: Side = match?.userA === user._id ? 'A' : 'B';
+    const invited = match?.status === 'invited' && !mine(match, 'accepted', side);
+    return { active: true, invitation: invited ? { id: match._id, deadline: match.deadline } : null };
   },
 });
 
@@ -214,10 +232,6 @@ export const respondInvite = mutation({
     const otherAccepted = side === 'A' ? match.acceptedB : match.acceptedA;
     if (!otherAccepted) return null;
 
-    for (const userId of [match.userA, match.userB]) {
-      const session = await activeSession(ctx, userId);
-      if (session) await endSession(ctx, session);
-    }
     await scheduleDeadline(ctx, match, 'planning', Date.now() + PLAN_CONFIRM_MINUTES * 60_000);
     return null;
   },
@@ -256,6 +270,7 @@ export const finish = mutation({
       ...flag('done', side),
       ...(otherDone ? { status: 'completed' as const } : {}),
     });
+    if (otherDone) await releaseSessions(ctx, match);
     return null;
   },
 });

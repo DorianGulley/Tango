@@ -1,3 +1,5 @@
+import '@/lib/background-location';
+
 import { ConvexProvider, ConvexReactClient } from 'convex/react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';

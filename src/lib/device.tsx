@@ -14,12 +14,18 @@ const storage =
       }
     : {
         get: () => SecureStore.getItemAsync(KEY),
-        set: (value: string) => SecureStore.setItemAsync(KEY, value),
+        set: (value: string) =>
+          SecureStore.setItemAsync(KEY, value, { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK }),
       };
+
+export const readDeviceId = storage.get;
 
 async function loadDeviceId() {
   const existing = await storage.get();
-  if (existing) return existing;
+  if (existing) {
+    await storage.set(existing);
+    return existing;
+  }
   const created = `${Crypto.randomUUID()}${Crypto.randomUUID()}`.replaceAll('-', '');
   await storage.set(created);
   return created;

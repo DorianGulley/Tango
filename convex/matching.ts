@@ -4,7 +4,7 @@ import { internal } from './_generated/api';
 import { compatibility, type Answers } from './compatibility';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalMutation, type MutationCtx } from './_generated/server';
-import { closeMatch, distanceMeters, endSession, isBlocked, pairKey } from './model';
+import { closeMatch, distanceMeters, isBlocked, latestMatch, mine, pairKey, releaseSessions } from './model';
 import { matchStatus } from './schema';
 import {
   INVITE_MINUTES,
@@ -13,6 +13,7 @@ import {
   MIN_MATCH_PERCENT,
   REVEAL_COLORS,
   REVEAL_SYMBOLS,
+  STALE_POSITION_MINUTES,
 } from './tangoConfig';
 
 function wantsEachOther(a: Doc<'users'>, b: Doc<'users'>) {
@@ -28,29 +29,41 @@ function wantsEachOther(a: Doc<'users'>, b: Doc<'users'>) {
 
 type Positioned = Doc<'sessions'> & { latitude: number; longitude: number };
 
-function isAvailable(session: Doc<'sessions'>, now: number): session is Positioned {
+function isAvailable(session: Doc<'sessions'>): session is Positioned {
   return (
     session.active &&
-    session.expiresAt > now &&
     session.matchId === undefined &&
     session.latitude !== undefined &&
     session.longitude !== undefined
   );
 }
 
+async function inAnotherTango(ctx: MutationCtx, userId: Id<'users'>) {
+  const match = await latestMatch(ctx, userId);
+  if (!match || match.status === 'closed') return false;
+  return !mine(match, 'dismissed', match.userA === userId ? 'A' : 'B');
+}
+
+function freshSessions(ctx: MutationCtx, now: number) {
+  return ctx.db
+    .query('sessions')
+    .withIndex('by_active_and_updatedAt', (q) =>
+      q.eq('active', true).gte('updatedAt', now - STALE_POSITION_MINUTES * 60_000),
+    )
+    .order('desc')
+    .take(500);
+}
+
 export async function findMatchFor(ctx: MutationCtx, sessionId: Id<'sessions'>) {
   const now = Date.now();
   const session = await ctx.db.get('sessions', sessionId);
-  if (!session || !isAvailable(session, now)) return null;
+  if (!session || !isAvailable(session)) return null;
   const me = await ctx.db.get('users', session.userId);
-  if (!me?.quiz) return null;
+  if (!me?.quiz || (await inAnotherTango(ctx, me._id))) return null;
   const myQuiz: Answers = me.quiz;
 
   const [candidates, locations] = await Promise.all([
-    ctx.db
-      .query('sessions')
-      .withIndex('by_active', (q) => q.eq('active', true))
-      .take(500),
+    freshSessions(ctx, now),
     ctx.db.query('locations').take(500),
   ]);
 
@@ -63,7 +76,7 @@ export async function findMatchFor(ctx: MutationCtx, sessionId: Id<'sessions'>) 
   } | null = null;
 
   for (const candidate of candidates) {
-    if (candidate.userId === me._id || !isAvailable(candidate, now)) continue;
+    if (candidate.userId === me._id || !isAvailable(candidate)) continue;
     const other = await ctx.db.get('users', candidate.userId);
     if (!other?.quiz || !wantsEachOther(me, other)) continue;
     const result = compatibility(myQuiz, other.quiz);
@@ -74,7 +87,9 @@ export async function findMatchFor(ctx: MutationCtx, sessionId: Id<'sessions'>) 
       .query('pairs')
       .withIndex('by_key', (q) => q.eq('key', pairKey(me._id, other._id)))
       .first();
-    if (pair || (await isBlocked(ctx, me._id, other._id))) continue;
+    if (pair || (await isBlocked(ctx, me._id, other._id)) || (await inAnotherTango(ctx, other._id))) {
+      continue;
+    }
 
     for (const location of locations) {
       if (location.retired) continue;
@@ -132,23 +147,10 @@ export const expireMatch = internalMutation({
     if (!match || match.status !== status || match.deadline > Date.now()) return null;
     if (status === 'revealed') {
       await ctx.db.patch('matches', matchId, { status: 'completed' });
+      await releaseSessions(ctx, match);
       return null;
     }
     await closeMatch(ctx, match, 'expired');
-    return null;
-  },
-});
-
-export const expireSession = internalMutation({
-  args: { sessionId: v.id('sessions') },
-  handler: async (ctx, { sessionId }) => {
-    const session = await ctx.db.get('sessions', sessionId);
-    if (!session || !session.active || session.expiresAt > Date.now()) return null;
-    if (session.matchId) {
-      const match = await ctx.db.get('matches', session.matchId);
-      if (match?.status === 'invited') await closeMatch(ctx, match, 'expired');
-    }
-    await endSession(ctx, session);
     return null;
   },
 });
@@ -157,18 +159,20 @@ export const sweep = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
-    const sessions = await ctx.db
+    const stale = await ctx.db
       .query('sessions')
-      .withIndex('by_active', (q) => q.eq('active', true))
+      .withIndex('by_active_and_updatedAt', (q) =>
+        q.eq('active', true).gte('updatedAt', 0).lt('updatedAt', now - STALE_POSITION_MINUTES * 60_000),
+      )
       .take(500);
-    for (const session of sessions) {
-      if (session.expiresAt <= now) {
-        await ctx.runMutation(internal.matching.expireSession, { sessionId: session._id });
-      }
+    for (const session of stale) {
+      await ctx.db.patch('sessions', session._id, {
+        latitude: undefined,
+        longitude: undefined,
+        updatedAt: undefined,
+      });
     }
-    for (const session of sessions) {
-      if (session.expiresAt > now) await findMatchFor(ctx, session._id);
-    }
+    for (const session of await freshSessions(ctx, now)) await findMatchFor(ctx, session._id);
     return null;
   },
 });

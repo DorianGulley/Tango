@@ -1,19 +1,19 @@
 import { useMutation, useQuery } from 'convex/react';
 import { Redirect, router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { api } from '@/../convex/_generated/api';
 import { ITEMS } from '@/../convex/compatibility';
-import { ENVIRONMENTS, SESSION_MINUTES } from '@/../convex/tangoConfig';
+import { CAMPUS_NAME, ENVIRONMENTS } from '@/../convex/tangoConfig';
 import { MatchFlow } from '@/components/match-flow';
 import { Body, Button, Card, Screen, Title } from '@/components/ui';
+import { startBackgroundUpdates, stopBackgroundUpdates, watchWhileOpen } from '@/lib/background-location';
 import { useDeviceId } from '@/lib/device';
 import { showError } from '@/lib/errors';
 import type { TangoState } from '@/lib/types';
 import { getPositionForTango } from '@/lib/location';
-import { formatRemaining, useNow } from '@/lib/use-now';
 import { colors, space } from '@/theme';
 
 function intentLabel(value: string | number | undefined) {
@@ -45,7 +45,28 @@ function TangoHome({ profile, tangoMode, connections }: HomeProps) {
   const setTangoMode = useMutation(api.tango.setTangoMode);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const now = useNow();
+  const on = tangoMode !== null;
+
+  useEffect(() => {
+    if (!on) {
+      stopBackgroundUpdates().catch(() => {});
+      return;
+    }
+    let stopWatching: (() => void) | undefined;
+    let cancelled = false;
+    startBackgroundUpdates()
+      .then(async (background) => {
+        if (background || cancelled) return;
+        setNotice('Tango only finds you while the app is open. To be paired with it closed, set location to "Always" in Settings.');
+        stopWatching = await watchWhileOpen(deviceId);
+        if (cancelled) stopWatching();
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      stopWatching?.();
+    };
+  }, [on, deviceId]);
 
   async function turnOn() {
     setBusy(true);
@@ -69,6 +90,7 @@ function TangoHome({ profile, tangoMode, connections }: HomeProps) {
     setBusy(true);
     try {
       await setTangoMode({ deviceId, on: false });
+      await stopBackgroundUpdates();
       setNotice(null);
     } catch (error) {
       showError(error);
@@ -138,17 +160,19 @@ function TangoHome({ profile, tangoMode, connections }: HomeProps) {
               Tango Mode is on
             </Title>
             <Body muted style={styles.centerText}>
-              We&apos;re looking for someone nearby who fits. Keep the app open — you&apos;ll get an
-              invitation here. Your location is never shown to anyone.
+              We&apos;re looking for someone nearby who fits, even while Tango is closed. We&apos;ll
+              notify you when there&apos;s an invitation. Your location is never shown to anyone.
             </Body>
-            <Body style={styles.centerText}>Ends in {formatRemaining(tangoMode.expiresAt - now)}</Body>
+            {!tangoMode.located && (
+              <Body style={styles.centerText}>We&apos;ll start looking once you&apos;re on the {CAMPUS_NAME} campus.</Body>
+            )}
           </>
         ) : (
           <>
             <Title style={styles.centerText}>Ready to Tango?</Title>
             <Body muted style={styles.centerText}>
-              Turn on Tango Mode for {SESSION_MINUTES} minutes to be introduced to someone nearby at a
-              public spot. You can turn it off any time.
+              Turn on Tango Mode to be introduced to someone nearby at a public spot. It stays on until
+              you turn it off.
             </Body>
           </>
         )}

@@ -65,13 +65,14 @@ export default defineSchema({
   sessions: defineTable({
     userId: v.id('users'),
     active: v.boolean(),
-    expiresAt: v.number(),
+    expiresAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
     latitude: v.optional(v.number()),
     longitude: v.optional(v.number()),
     matchId: v.optional(v.id('matches')),
   })
     .index('by_userId_and_active', ['userId', 'active'])
-    .index('by_active', ['active']),
+    .index('by_active_and_updatedAt', ['active', 'updatedAt']),
 
   matches: defineTable({
     userA: v.id('users'),

@@ -34,6 +34,8 @@ Project repository for Tango: an [Expo](https://expo.dev) app (Expo Router, Type
 
 ## Checks
 
+The typecheck needs `expo-env.d.ts` and `.expo/types`, which Expo generates (gitignored) the first time `npx expo start` runs.
+
 ```bash
 npx tsc --noEmit
 npx expo lint

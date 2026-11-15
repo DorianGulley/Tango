@@ -30,9 +30,9 @@ const LOCATIONS: {
     longitude: -122.40727,
     neighborhood: 'SoMa',
     description: 'A bright café opening onto a pedestrian plaza off Fifth Street. Meet at the plaza-side door.',
-    photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Blue_Bottle_Mint_Plaza_%2814764626968%29.jpg/1280px-Blue_Bottle_Mint_Plaza_%2814764626968%29.jpg',
+    photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Blue_Bottle_Mint_Plaza_%2814948139031%29.jpg/1280px-Blue_Bottle_Mint_Plaza_%2814948139031%29.jpg',
     photoCredit: 'Christopher Michel, CC BY 2.0',
-    photoSource: 'https://commons.wikimedia.org/wiki/File:Blue_Bottle_Mint_Plaza_(14764626968).jpg',
+    photoSource: 'https://commons.wikimedia.org/wiki/File:Blue_Bottle_Mint_Plaza_(14948139031).jpg',
   },
   {
     name: 'Sightglass Coffee',

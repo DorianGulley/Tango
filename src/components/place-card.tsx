@@ -46,12 +46,14 @@ export function PlaceCard({ place, compact }: { place: Place; compact?: boolean 
         <Body>{place.description}</Body>
       </View>
       {Platform.OS === 'ios' && (
-        <AppleMaps.View
+        <View pointerEvents="none">
+          <AppleMaps.View
           style={compact ? styles.mapCompact : styles.map}
           cameraPosition={{ coordinates, zoom: 15 }}
           markers={[{ coordinates, title: place.name, tintColor: colors.accent }]}
-          uiSettings={{ myLocationButtonEnabled: false }}
-        />
+            uiSettings={{ myLocationButtonEnabled: false }}
+          />
+        </View>
       )}
       <View style={styles.body}>
         <Button

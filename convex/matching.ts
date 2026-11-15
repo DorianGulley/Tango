@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
+import { compatibility, type Answers } from './compatibility';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalMutation, type MutationCtx } from './_generated/server';
 import { closeMatch, distanceMeters, endSession, isBlocked, pairKey } from './model';
@@ -8,16 +9,14 @@ import { matchStatus } from './schema';
 import {
   INVITE_MINUTES,
   MAX_TRAVEL_METERS,
-  MIN_COMPATIBILITY,
+  MAX_INVITE_STRENGTHS,
+  MIN_MATCH_PERCENT,
   REVEAL_COLORS,
   REVEAL_SYMBOLS,
 } from './tangoConfig';
 
 function wantsEachOther(a: Doc<'users'>, b: Doc<'users'>) {
-  const intentionsFit =
-    a.intention === 'open' || b.intention === 'open' || a.intention === b.intention;
   return (
-    intentionsFit &&
     a.interestedIn.includes(b.gender) &&
     b.interestedIn.includes(a.gender) &&
     b.age >= a.ageMin &&
@@ -25,11 +24,6 @@ function wantsEachOther(a: Doc<'users'>, b: Doc<'users'>) {
     a.age >= b.ageMin &&
     a.age <= b.ageMax
   );
-}
-
-function compatibility(a: Doc<'users'>, b: Doc<'users'>) {
-  const same = a.answers.filter((answer, i) => answer === b.answers[i]).length;
-  return same / Math.max(a.answers.length, 1);
 }
 
 type Positioned = Doc<'sessions'> & { latitude: number; longitude: number };
@@ -49,7 +43,8 @@ export async function findMatchFor(ctx: MutationCtx, sessionId: Id<'sessions'>) 
   const session = await ctx.db.get('sessions', sessionId);
   if (!session || !isAvailable(session, now)) return null;
   const me = await ctx.db.get('users', session.userId);
-  if (!me) return null;
+  if (!me?.quiz) return null;
+  const myQuiz: Answers = me.quiz;
 
   const [candidates, locations] = await Promise.all([
     ctx.db
@@ -63,15 +58,17 @@ export async function findMatchFor(ctx: MutationCtx, sessionId: Id<'sessions'>) 
     session: Positioned;
     location: Doc<'locations'>;
     score: number;
+    strengths: string[];
     farther: number;
   } | null = null;
 
   for (const candidate of candidates) {
     if (candidate.userId === me._id || !isAvailable(candidate, now)) continue;
     const other = await ctx.db.get('users', candidate.userId);
-    if (!other || !wantsEachOther(me, other)) continue;
-    const score = compatibility(me, other);
-    if (score < MIN_COMPATIBILITY) continue;
+    if (!other?.quiz || !wantsEachOther(me, other)) continue;
+    const result = compatibility(myQuiz, other.quiz);
+    if (!result.reliable || result.percent < MIN_MATCH_PERCENT) continue;
+    const score = result.percent;
     if (best && score < best.score) continue;
     const pair = await ctx.db
       .query('pairs')
@@ -90,7 +87,7 @@ export async function findMatchFor(ctx: MutationCtx, sessionId: Id<'sessions'>) 
       );
       if (farther > MAX_TRAVEL_METERS) continue;
       if (!best || score > best.score || (score === best.score && farther < best.farther)) {
-        best = { session: candidate, location, score, farther };
+        best = { session: candidate, location, score, farther, strengths: result.strengths };
       }
     }
   }
@@ -102,6 +99,7 @@ export async function findMatchFor(ctx: MutationCtx, sessionId: Id<'sessions'>) 
     userB: best.session.userId,
     locationId: best.location._id,
     score: best.score,
+    strengths: best.strengths.slice(0, MAX_INVITE_STRENGTHS),
     status: 'invited',
     deadline,
     acceptedA: false,

@@ -133,6 +133,11 @@ function Invite({ match }: { match: MatchView }) {
           Someone nearby might be your kind of person.
         </Title>
         <Title style={[styles.centerText, { color: colors.accent }]}>Want to Tango?</Title>
+        {match.strengths.length > 0 && (
+          <Body testID="invite-strengths" style={styles.centerText}>
+            You line up on: {match.strengths.join(', ')}
+          </Body>
+        )}
         <Countdown deadline={match.deadline} label="Invitation expires in" />
       </View>
       {match.accepted ? (

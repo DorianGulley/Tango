@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as compatibility from "../compatibility.js";
 import type * as crons from "../crons.js";
 import type * as locations from "../locations.js";
 import type * as matching from "../matching.js";
@@ -24,6 +25,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  compatibility: typeof compatibility;
   crons: typeof crons;
   locations: typeof locations;
   matching: typeof matching;

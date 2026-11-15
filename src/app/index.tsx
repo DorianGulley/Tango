@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { api } from '@/../convex/_generated/api';
-import { ENVIRONMENTS, INTENTIONS, SESSION_MINUTES } from '@/../convex/tangoConfig';
+import { ITEMS } from '@/../convex/compatibility';
+import { ENVIRONMENTS, SESSION_MINUTES } from '@/../convex/tangoConfig';
 import { MatchFlow } from '@/components/match-flow';
 import { Body, Button, Card, Screen, Title } from '@/components/ui';
 import { useDeviceId } from '@/lib/device';
@@ -14,6 +15,12 @@ import type { TangoState } from '@/lib/types';
 import { getPositionForTango } from '@/lib/location';
 import { formatRemaining, useNow } from '@/lib/use-now';
 import { colors, space } from '@/theme';
+
+function intentLabel(value: string | number | undefined) {
+  const item = ITEMS.find((i) => i.id === 'intent');
+  if (item?.kind !== 'choice') return null;
+  return item.options.find((o) => o.value === value)?.label ?? null;
+}
 
 export default function HomeScreen() {
   const deviceId = useDeviceId();
@@ -26,7 +33,7 @@ export default function HomeScreen() {
       </View>
     );
   }
-  if (state === null) return <Redirect href="/onboarding" />;
+  if (state === null || !state.profile.email || !state.profile.quiz) return <Redirect href="/onboarding" />;
   if (state.match) return <MatchFlow match={state.match} />;
   return <TangoHome profile={state.profile} tangoMode={state.tangoMode} connections={state.connections} />;
 }
@@ -49,7 +56,7 @@ function TangoHome({ profile, tangoMode, connections }: HomeProps) {
         setNotice(result.message);
         return;
       }
-      if (result.demo) setNotice('Demo build: using a fixed downtown San Francisco location.');
+      if (result.demo) setNotice('Demo build: using a fixed spot on campus.');
       await setTangoMode({ deviceId, on: true, ...result.position });
     } catch (error) {
       showError(error);
@@ -79,7 +86,7 @@ function TangoHome({ profile, tangoMode, connections }: HomeProps) {
       <Title testID="home-greeting">Hi, {profile.name}</Title>
       <Card>
         <Body testID="profile-summary">
-          {profile.age} · {INTENTIONS.find((i) => i.id === profile.intention)?.label}
+          {profile.age} · {intentLabel(profile.quiz?.intent)}
         </Body>
         <Body muted testID="profile-places">
           Meets at: {places}

@@ -9,7 +9,7 @@ export const environment = v.union(
   v.literal('event'),
 );
 export const gender = v.union(v.literal('woman'), v.literal('man'), v.literal('nonbinary'));
-export const intention = v.union(v.literal('serious'), v.literal('casual'), v.literal('open'));
+export const quizAnswers = v.record(v.string(), v.union(v.string(), v.number()));
 export const matchStatus = v.union(
   v.literal('invited'),
   v.literal('planning'),
@@ -34,17 +34,20 @@ export const feeling = v.union(
 export default defineSchema({
   users: defineTable({
     deviceId: v.string(),
+    email: v.optional(v.string()),
     name: v.string(),
     age: v.number(),
     gender,
     interestedIn: v.array(gender),
     ageMin: v.number(),
     ageMax: v.number(),
-    intention,
     bio: v.optional(v.string()),
-    answers: v.array(v.number()),
+    quiz: v.optional(quizAnswers),
+    intention: v.optional(v.string()),
+    answers: v.optional(v.array(v.number())),
     environments: v.array(environment),
-  }).index('by_deviceId', ['deviceId']),
+  })
+    .index('by_deviceId', ['deviceId']),
 
   locations: defineTable({
     name: v.string(),
@@ -56,6 +59,7 @@ export default defineSchema({
     photoUrl: v.string(),
     photoCredit: v.string(),
     photoSource: v.string(),
+    retired: v.optional(v.boolean()),
   }).index('by_name', ['name']),
 
   sessions: defineTable({
@@ -74,6 +78,7 @@ export default defineSchema({
     userB: v.id('users'),
     locationId: v.id('locations'),
     score: v.number(),
+    strengths: v.optional(v.array(v.string())),
     status: matchStatus,
     deadline: v.number(),
     acceptedA: v.boolean(),

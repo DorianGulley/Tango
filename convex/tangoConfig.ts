@@ -5,15 +5,17 @@ export const INVITE_MINUTES = 5;
 export const PLAN_CONFIRM_MINUTES = 10;
 export const RENDEZVOUS_MINUTES = 30;
 
-export const MAX_TRAVEL_METERS = 2000;
-export const MIN_COMPATIBILITY = 0.5;
+export const MAX_TRAVEL_METERS = 241;
+export const MIN_MATCH_PERCENT = 60;
+export const MAX_INVITE_STRENGTHS = 3;
+export const OPTIONAL_ITEMS = ['politics'];
 export const COARSE_POSITION_DECIMALS = 3;
 export const MIN_AGE = 18;
 export const MAX_AGE = 99;
 
 export const ENVIRONMENTS = [
   { id: 'cafe', label: 'Cafés', symbol: 'cup.and.saucer.fill' },
-  { id: 'park', label: 'Parks', symbol: 'tree.fill' },
+  { id: 'park', label: 'Lawns & gardens', symbol: 'tree.fill' },
   { id: 'plaza', label: 'Public plazas', symbol: 'building.columns.fill' },
   { id: 'social', label: 'Social venues', symbol: 'person.3.fill' },
   { id: 'event', label: 'Events', symbol: 'ticket.fill' },
@@ -27,40 +29,6 @@ export const GENDERS = [
   { id: 'nonbinary', label: 'Non-binary' },
 ] as const;
 export type Gender = (typeof GENDERS)[number]['id'];
-
-export const INTENTIONS = [
-  { id: 'serious', label: 'Something serious' },
-  { id: 'casual', label: 'Something casual' },
-  { id: 'open', label: 'Open to see' },
-] as const;
-export type Intention = (typeof INTENTIONS)[number]['id'];
-
-export const QUESTIONS = [
-  {
-    prompt: 'Your ideal Saturday morning?',
-    options: ['Farmers market', 'Long run or hike', 'Sleeping in', 'Brunch with friends'],
-  },
-  {
-    prompt: 'At a party, you are usually…',
-    options: ['Meeting everyone', 'Deep in one conversation', 'In the kitchen', 'Leaving early'],
-  },
-  {
-    prompt: 'Pick a weekend trip',
-    options: ['Big Sur camping', 'Napa wine tasting', 'Tahoe skiing', 'Staying in the city'],
-  },
-  {
-    prompt: 'How do you recharge?',
-    options: ['Alone time', 'Friends', 'Getting outside', 'Making something'],
-  },
-  {
-    prompt: 'Plans or spontaneity?',
-    options: ['Plan everything', 'Mostly plans', 'Mostly spontaneous', 'Pure spontaneity'],
-  },
-  {
-    prompt: 'Your go-to first conversation topic?',
-    options: ['Travel', 'Food', 'Books & films', 'Big ideas'],
-  },
-] as const;
 
 export const REVEAL_COLORS = [
   { name: 'Coral', hex: '#FF5A5F' },
@@ -100,5 +68,7 @@ export const FEELINGS = [
 ] as const;
 export type Feeling = (typeof FEELINGS)[number]['id'];
 
-export const SF_CENTER = { latitude: 37.7749, longitude: -122.4194 };
-export const SERVICE_RADIUS_METERS = 15000;
+export const CAMPUS_NAME = 'Stanford';
+export const CAMPUS_CENTER = { latitude: 37.4275, longitude: -122.1697 };
+export const CAMPUS_RADIUS_METERS = 1600;
+export const ALLOWED_EMAIL_DOMAIN = 'stanford.edu';

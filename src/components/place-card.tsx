@@ -49,7 +49,7 @@ export function PlaceCard({ place, compact }: { place: Place; compact?: boolean 
         <View pointerEvents="none">
           <AppleMaps.View
           style={compact ? styles.mapCompact : styles.map}
-          cameraPosition={{ coordinates, zoom: 15 }}
+          cameraPosition={{ coordinates, zoom: 16 }}
           markers={[{ coordinates, title: place.name, tintColor: colors.accent }]}
             uiSettings={{ myLocationButtonEnabled: false }}
           />

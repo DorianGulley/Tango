@@ -57,6 +57,7 @@ function TangoHome({ profile, tangoMode, connections }: HomeProps) {
     startBackgroundUpdates()
       .then(async (background) => {
         if (background || cancelled) return;
+        setNotice('Tango only finds you while the app is open. To be paired with it closed, set location to "Always" in Settings.');
         stopWatching = await watchWhileOpen(deviceId);
         if (cancelled) stopWatching();
       })
@@ -78,9 +79,6 @@ function TangoHome({ profile, tangoMode, connections }: HomeProps) {
       }
       if (result.demo) setNotice('Demo build: using a fixed spot on campus.');
       await setTangoMode({ deviceId, on: true, ...result.position });
-      if (!(await startBackgroundUpdates())) {
-        setNotice('Tango only finds you while the app is open. To be paired with it closed, set location to "Always" in Settings.');
-      }
     } catch (error) {
       showError(error);
     } finally {
